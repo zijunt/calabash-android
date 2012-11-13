@@ -1,23 +1,44 @@
 require 'zip/zip'
 def calabash_build(app)
   keystore = read_keystore_info()
+  project_dir = Dir.pwd
 
   test_server_file_name = test_server_path(app)
   FileUtils.mkdir_p File.dirname(test_server_file_name) unless File.exist? File.dirname(test_server_file_name)
 
   unsigned_test_apk = File.join(File.dirname(__FILE__), '..', 'lib/calabash-android/lib/TestServer.apk')
-  android_platform = Dir["#{ENV["ANDROID_HOME"].gsub("\\", "/")}/platforms/android-*"].last
+  calabash_jar = File.join(File.dirname(__FILE__), '..', 'lib/calabash-android/lib/calabash.jar')
+  robotium_jar = File.join(File.dirname(__FILE__), '..', 'test-server/instrumentation-backend/libs/robotium-solo-3.3.jar')
+  all_android_platforms = Dir["#{ENV["ANDROID_HOME"].gsub("\\", "/")}/platforms/android-*"]
+  android_platform = all_android_platforms.sort {|x,y| x.split("-").last.to_i <=> y.split("-").last.to_i}.last
   raise "No Android SDK found in #{ENV["ANDROID_HOME"].gsub("\\", "/")}/platforms/" unless android_platform
+  android_jar =  "#{android_platform}/android.jar"
+  has_plugins =  File.exists?(File.join(project_dir, "plugins"))
+  if has_plugins
+    cmd = "javac -cp #{calabash_jar}:#{robotium_jar}:#{android_jar} plugins/sh/calaba/instrumentationbackend/actions/*.java"
+    log cmd
+    raise "Could not compile plugins" system cmd
+  end
   Dir.mktmpdir do |workspace_dir|
     Dir.chdir(workspace_dir) do
-      FileUtils.cp(unsigned_test_apk, "TestServer.apk")
+      FileUtils.cp(unsigned_test_apk, "TestServer_aapt.apk")
       FileUtils.cp(File.join(File.dirname(__FILE__), '..', 'test-server/AndroidManifest.xml'), "AndroidManifest.xml")
 
       unless system %Q{ruby -pi.bak -e "gsub(/#targetPackage#/, '#{package_name(app)}')" AndroidManifest.xml}
         raise "Could not replace package name in manifest"
       end
 
-      unless system %Q{"#{ENV["ANDROID_HOME"]}/platform-tools/aapt" package -M AndroidManifest.xml  -I "#{android_platform}/android.jar" -F dummy.apk}
+
+      plugin_path = File.join(project_dir, "plugins") if has_plugins
+      puts `dx --dex --verbose --output classes.dex #{calabash_jar} #{plugin_path} #{robotium_jar}`
+
+      cmd = "apkbuilder TestServer.apk -u -z TestServer_aapt.apk -f classes.dex"
+      puts cmd
+      puts `#{cmd}`
+
+
+
+      unless system %Q{"#{ENV["ANDROID_HOME"]}/platform-tools/aapt" package -M AndroidManifest.xml  -I "#{android_jar}" -F dummy.apk}
         raise "Could not create dummy.apk"
       end
 

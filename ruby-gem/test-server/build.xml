@@ -93,9 +93,8 @@
     
     <target name="package" depends="-check.preconditions">
       <antcall target="-compile" />
+      <antcall target="-jar" />
       <antcall target="-aapt" />
-      <antcall target="-dex" />
-      <antcall target="-apk" />
     </target>
 
     
@@ -132,14 +131,20 @@
       </exec>
     </target>
 
+     <target name="-jar">
+      <zip destfile="calabash.jar"
+        basedir="${bin.dir}"
+        excludes="assets/**"
+      />
+    </target>
+
+
     <target name="-apk">
       <exec executable="${apkbuilder}" failonerror="yes">
         <arg file="${test.app.unsigned}" />
         <arg value="-u" />
         <arg value="-z" />
         <arg file="${test.app.aapt}" />
-        <arg value="-f" />
-        <arg file="${dex.file}" />
       </exec>
     </target>
 

@@ -3,6 +3,10 @@ gen
 staging
 instrumentation_backend/.settings
 instrumentation_backend/assets/foo.bar
+ruby-gem/test-server/.idea
+ruby-gem/test-server/instrumentation-backend/.idea
+ruby-gem/test-server/instrumentation-backend/instrumentation_backend.iml
+ruby-gem/test-server/instrumentation-backend/project.properties
 *.png
 *.swp
 **/.DS_STORE

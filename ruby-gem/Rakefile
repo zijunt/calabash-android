@@ -5,7 +5,7 @@ def build
   test_server_template_dir = File.join(File.dirname(__FILE__), 'test-server')
   
   Dir.mktmpdir do |workspace_dir|
-    
+    workspace_dir = Dir.mktmpdir
     @test_server_dir = File.join(workspace_dir, 'test-server')
     FileUtils.cp_r(test_server_template_dir, workspace_dir)
     
@@ -13,6 +13,7 @@ def build
     args = [
       ant_executable,
       "clean", 
+      "-v",
       "package",
       "-Dandroid.api.level=16",
     ]
@@ -29,7 +30,8 @@ def build
 
     FileUtils.mkdir_p "test_servers" unless File.exist? "test_servers"
     
-    FileUtils.cp(File.join(@test_server_dir, "bin", "Test_unsigned.apk"), File.join(File.dirname(__FILE__), 'lib/calabash-android/lib/TestServer.apk'))
+    FileUtils.cp(File.join(@test_server_dir, "calabash.jar"), File.join(File.dirname(__FILE__), 'lib/calabash-android/lib/calabash.jar'))
+    FileUtils.cp(File.join(@test_server_dir, "bin", "Test_aapt.apk"), File.join(File.dirname(__FILE__), 'lib/calabash-android/lib/TestServer.apk'))
   end
 end
 
