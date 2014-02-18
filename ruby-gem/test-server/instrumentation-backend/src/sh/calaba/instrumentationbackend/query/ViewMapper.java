@@ -3,10 +3,15 @@ package sh.calaba.instrumentationbackend.query;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.lang.reflect.Field;
 
 import sh.calaba.instrumentationbackend.InstrumentationBackend;
 import sh.calaba.instrumentationbackend.query.ast.UIQueryUtils;
+import android.content.Context;
 import android.content.res.Resources;
+import android.os.Build;
+import android.util.DisplayMetrics;
+import android.view.Display;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -47,19 +52,97 @@ public class ViewMapper {
 
 	public static Map getRectForView(View v) {
 		Map rect = new HashMap();
-		int[] location = new int[2];
-		v.getLocationOnScreen(location);
 
-		rect.put("x", location[0]);
-		rect.put("y", location[1]);
+        float[] scale = findScaleFactor(v);
+        float scaleX = scale[0];
+        float scaleY = scale[1];
+
+        int rawX = 0;
+        int rawY = 0;
+        int width = 0;
+        int height = 0;
+
+        if (scaleX != 1 || scaleY != 1) {
+            int[] viewLocationInWindow = new int[2];
+            v.getLocationInWindow(viewLocationInWindow);
+
+            // If the screen has been rotated, the position of the root view is correct
+            boolean rotated = false;
+
+            try {
+                rotated = isDisplayRotated(v);
+            } catch (Exception e) {
+                // Do nothing
+            }
+
+            int scaledX = (int)(scaleX * viewLocationInWindow[0]);
+            int scaledY = (int)(scaleY * viewLocationInWindow[1]);
+
+            // Offset the coordinates of the view with regards to the rootview
+            View rootView = v.getRootView();
+
+            int[] rootViewLocation = new int[2];
+            rootView.getLocationOnScreen(rootViewLocation);
+
+            int rootViewRawX = (int)(rootViewLocation[0] * (rotated ? 1 : scaleX));
+            int rootViewRawY = (int)(rootViewLocation[1] * (rotated ? 1 : scaleY));
+
+            rawX = rootViewRawX + scaledX;
+            rawY = rootViewRawY + scaledY;
+
+            width = (int)(v.getWidth() * scaleX);
+            height = (int)(v.getHeight() * scaleY);
+        } else {
+            int[] location = new int[2];
+
+            v.getLocationOnScreen(location);
+
+            rawX = location[0];
+            rawY = location[1];
+
+            width = v.getWidth();
+            height = v.getHeight();
+        }
+
+		rect.put("x", rawX);
+		rect.put("y", rawY);
+
+		rect.put("center_x", rawX + width / 2.0f);
+		rect.put("center_y", rawY + height / 2.0f);
 		
-		rect.put("center_x", location[0] + v.getWidth()/2.0);
-		rect.put("center_y", location[1] + v.getHeight()/2.0);
-		
-		rect.put("width", v.getWidth());
-		rect.put("height", v.getHeight());
+		rect.put("width", width);
+		rect.put("height", height);
+
 		return rect;
 	}
+
+    public static float[] findScaleFactor(View v) {
+        float[] scale = {1.0f, 1.0f};
+
+        try {
+            DisplayMetrics displayMetrics = v.getContext().getResources().getDisplayMetrics();
+            Class<?> displayMetricsClass = displayMetrics.getClass();
+
+            Field field = displayMetricsClass.getField("widthPixels");
+            int width = field.getInt(displayMetrics);
+
+            field = displayMetricsClass.getField("noncompatWidthPixels");
+            int noncompatWidth = field.getInt(displayMetrics);
+
+            field = displayMetricsClass.getField("heightPixels");
+            int height = field.getInt(displayMetrics);
+
+            field = displayMetricsClass.getField("noncompatHeightPixels");
+            int noncompatHeight = field.getInt(displayMetrics);
+
+            scale[0] = (float) noncompatWidth / width;
+            scale[1] = (float) noncompatHeight / height;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return scale;
+    }
 
 	public static String getContentDescriptionForView(View v) {
 		CharSequence description = v.getContentDescription();
@@ -81,6 +164,30 @@ public class ViewMapper {
 		}
 		return id;
 	}
+
+    public static boolean isDisplayRotated(View v) {
+        Display display = null;
+
+        try {
+            if (Build.VERSION.SDK_INT < 17) {
+                display  = (Display) v.getContext().getSystemService(Context.DISPLAY_SERVICE);
+            } else {
+                display = v.getDisplay();
+            }
+        } catch (Exception e) {
+            return false;
+        }
+
+        try {
+            if (Build.VERSION.SDK_INT < 8) { // orientation method was deprecated in API level 8
+                return (display.getOrientation() != 0);
+            } else {
+                return (display.getRotation() != 0);
+            }
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public static Object mapView(Object o) {
