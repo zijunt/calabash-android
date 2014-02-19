@@ -20,36 +20,36 @@ public class PublicViewFetcher extends ViewFetcher {
         if (view == null) return false;
 
         View parent = getScrollOrListParent(view);
-        Map viewRect = ViewMapper.getRectForView(view);
-        Map parentViewRect = null;
-        double parentY = 0;
-        double parentHeight = 0;
+        Map<String,Integer> viewRect = ViewMapper.getRectForView(view);
+        Map<String,Integer> parentViewRect = null;
+        int parentY = 0;
+        int parentHeight = 0;
 
         if (view.equals(parent)) {
             return true;
         } else if (parent != null) {
             parentViewRect = ViewMapper.getRectForView(parent);
-            parentY = (Integer)parentViewRect.get("y");
-            parentHeight = (Integer)parentViewRect.get("height");
+            parentY = parentViewRect.get("y");
+            parentHeight = parentViewRect.get("height");
         }
 
-        double windowHeight = 0.0d;
+        int windowHeight = 0;
 
         if (parent == null) {
             View rootView = view.getRootView();
 
             if (rootView != null && !view.equals(rootView)) {
-                Map rootViewRect = ViewMapper.getRectForView(view);
-                windowHeight = ((Integer)rootViewRect.get("y")) + ((Integer)rootViewRect.get("height"));
+                Map<String,Integer> rootViewRect = ViewMapper.getRectForView(view);
+                windowHeight = rootViewRect.get("y") + rootViewRect.get("height");
             }
         } else {
             windowHeight = parentY + parentHeight;
         }
 
-        if ((Float)viewRect.get("center_y") > windowHeight) {
+        if (viewRect.get("center_y") > windowHeight) {
             System.out.println("center_y > windowheight " + String.valueOf(windowHeight));
             return false;
-        } else if ((Float)viewRect.get("center_y") < parentY) {
+        } else if (viewRect.get("center_y") < parentY) {
             System.out.println("center_y < parentY " + String.valueOf(parentY));
             return false;
         }

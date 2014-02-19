@@ -50,8 +50,8 @@ public class ViewMapper {
 
 	}
 
-	public static Map getRectForView(View v) {
-		Map rect = new HashMap();
+	public static Map<String, Integer> getRectForView(View v) {
+		Map<String,Integer> rect = new HashMap<String,Integer>();
 
         float[] scale = findScaleFactor(v);
         float scaleX = scale[0];
@@ -107,8 +107,8 @@ public class ViewMapper {
 		rect.put("x", rawX);
 		rect.put("y", rawY);
 
-		rect.put("center_x", rawX + width / 2.0f);
-		rect.put("center_y", rawY + height / 2.0f);
+		rect.put("center_x", (int)(rawX + width / 2.0f));
+		rect.put("center_y", (int)(rawY + height / 2.0f));
 		
 		rect.put("width", width);
 		rect.put("height", height);
