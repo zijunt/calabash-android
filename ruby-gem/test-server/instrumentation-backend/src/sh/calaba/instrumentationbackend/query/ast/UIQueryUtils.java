@@ -177,7 +177,7 @@ public class UIQueryUtils {
 			return false;
 		}
 
-		return view.isShown() && viewFetcher.isViewSufficientlyShown(view);
+		return view.isShown() && viewFetcher.isViewFullyShown(view);
 	}
 
 	public static boolean isClickable(Object v) {
