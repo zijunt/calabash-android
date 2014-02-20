@@ -46,12 +46,8 @@ public class PublicViewFetcher extends ViewFetcher {
             windowHeight = parentY + parentHeight;
         }
 
-        if (viewRect.get("center_y") > windowHeight) {
-            return false;
-        } else if (viewRect.get("center_y") < parentY) {
-            return false;
-        }
+        int centerY = viewRect.get("center_y");
 
-        return true;
+        return (windowHeight > centerY && centerY > parentY);
     }
 }

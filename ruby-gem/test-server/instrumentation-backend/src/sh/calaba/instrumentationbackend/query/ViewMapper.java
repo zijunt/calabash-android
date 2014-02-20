@@ -1,5 +1,7 @@
 package sh.calaba.instrumentationbackend.query;
 
+import java.lang.RuntimeException;
+import java.lang.System;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -54,44 +56,45 @@ public class ViewMapper {
 		Map<String,Integer> rect = new HashMap<String,Integer>();
 
         float[] scale = findScaleFactor(v);
-        float scaleX = scale[0];
-        float scaleY = scale[1];
+        float scaleFactorX = scale[0];
+        float scaleFactorY = scale[1];
 
         int rawX = 0;
         int rawY = 0;
         int width = 0;
         int height = 0;
 
-        if (scaleX != 1 || scaleY != 1) {
+        System.out.println("Scale Factor X: " + String.valueOf(scaleFactorX));
+        System.out.println("Scale Factor Y: " + String.valueOf(scaleFactorY));
+
+        if (scaleFactorX < 0.99f || scaleFactorX > 1.01f || scaleFactorY < 0.99f || scaleFactorY > 1.01f) {
             int[] viewLocationInWindow = new int[2];
             v.getLocationInWindow(viewLocationInWindow);
+            int viewLocationInWindowX = viewLocationInWindow[0];
+            int viewLocationInWindowY = viewLocationInWindow[1];
 
-            // If the screen has been rotated, the position of the root view is correct
-            boolean rotated = false;
-
-            try {
-                rotated = isDisplayRotated(v);
-            } catch (Exception e) {
-                // Do nothing
-            }
-
-            int scaledX = (int)(scaleX * viewLocationInWindow[0]);
-            int scaledY = (int)(scaleY * viewLocationInWindow[1]);
+            int scaledX = (int)(scaleFactorX * viewLocationInWindowX);
+            int scaledY = (int)(scaleFactorY * viewLocationInWindowY);
 
             // Offset the coordinates of the view with regards to the rootview
             View rootView = v.getRootView();
 
             int[] rootViewLocation = new int[2];
             rootView.getLocationOnScreen(rootViewLocation);
+            int rootViewLocationX = rootViewLocation[0];
+            int rootViewLocationY = rootViewLocation[1];
 
-            int rootViewRawX = (int)(rootViewLocation[0] * (rotated ? 1 : scaleX));
-            int rootViewRawY = (int)(rootViewLocation[1] * (rotated ? 1 : scaleY));
+            // If the screen has been rotated, the position of the root view is correct
+            boolean rotated = isDisplayRotated(v);
+
+            int rootViewRawX = (int)(rootViewLocationX * (rotated ? 1 : scaleFactorX));
+            int rootViewRawY = (int)(rootViewLocationY * (rotated ? 1 : scaleFactorY));
 
             rawX = rootViewRawX + scaledX;
             rawY = rootViewRawY + scaledY;
 
-            width = (int)(v.getWidth() * scaleX);
-            height = (int)(v.getHeight() * scaleY);
+            width = (int)(v.getWidth() * scaleFactorX);
+            height = (int)(v.getHeight() * scaleFactorY);
         } else {
             int[] location = new int[2];
 
@@ -117,31 +120,30 @@ public class ViewMapper {
 	}
 
     public static float[] findScaleFactor(View v) {
-        float[] scale = {1.0f, 1.0f};
-
         try {
+            float[] scaleFactor = new float[2];
+
             DisplayMetrics displayMetrics = v.getContext().getResources().getDisplayMetrics();
             Class<?> displayMetricsClass = displayMetrics.getClass();
 
             Field field = displayMetricsClass.getField("widthPixels");
             int width = field.getInt(displayMetrics);
-
             field = displayMetricsClass.getField("noncompatWidthPixels");
             int noncompatWidth = field.getInt(displayMetrics);
+            scaleFactor[0] = (float)(noncompatWidth / width);
 
             field = displayMetricsClass.getField("heightPixels");
             int height = field.getInt(displayMetrics);
-
             field = displayMetricsClass.getField("noncompatHeightPixels");
             int noncompatHeight = field.getInt(displayMetrics);
+            scaleFactor[1] = (float)(noncompatHeight / height);
 
-            scale[0] = (float) noncompatWidth / width;
-            scale[1] = (float) noncompatHeight / height;
-        } catch (Exception e) {
-            e.printStackTrace();
+            return scaleFactor;
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
-
-        return scale;
     }
 
 	public static String getContentDescriptionForView(View v) {
