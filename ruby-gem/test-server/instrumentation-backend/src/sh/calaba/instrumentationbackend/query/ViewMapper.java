@@ -64,9 +64,6 @@ public class ViewMapper {
         int width = 0;
         int height = 0;
 
-        System.out.println("Scale Factor X: " + String.valueOf(scaleFactorX));
-        System.out.println("Scale Factor Y: " + String.valueOf(scaleFactorY));
-
         if (scaleFactorX < 0.99f || scaleFactorX > 1.01f || scaleFactorY < 0.99f || scaleFactorY > 1.01f) {
             int[] viewLocationInWindow = new int[2];
             v.getLocationInWindow(viewLocationInWindow);
@@ -130,13 +127,13 @@ public class ViewMapper {
             int width = field.getInt(displayMetrics);
             field = displayMetricsClass.getField("noncompatWidthPixels");
             int noncompatWidth = field.getInt(displayMetrics);
-            scaleFactor[0] = (float)(noncompatWidth / width);
+            scaleFactor[0] = (float)noncompatWidth / width;
 
             field = displayMetricsClass.getField("heightPixels");
             int height = field.getInt(displayMetrics);
             field = displayMetricsClass.getField("noncompatHeightPixels");
             int noncompatHeight = field.getInt(displayMetrics);
-            scaleFactor[1] = (float)(noncompatHeight / height);
+            scaleFactor[1] = (float)noncompatHeight / height;
 
             return scaleFactor;
         } catch (NoSuchFieldException e) {
